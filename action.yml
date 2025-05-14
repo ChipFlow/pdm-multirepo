@@ -10,7 +10,7 @@ inputs:
     description: 'Flags to use for PDM lock'
     required: false
     type: string
-    default: "--prod"
+    default: '--dev'
 outputs:
   overrides-generated:
     description: "True if overrides were generated and used"
