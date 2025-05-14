@@ -1,0 +1,50 @@
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+run-name: test
+name: Test action
+jobs:
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source code
+        uses: actions/checkout@v4
+
+      - name: Set up PDM
+        uses: pdm-project/setup-pdm@v4
+
+      - name: Install dependencies with multirepo
+        uses: ./
+
+      - name: Clean up
+        run: git clean -xdf
+
+      - name: Make test working directory
+        run: mkdir test
+
+      - name: Install dependencies with multirepo
+        uses: ./
+        with:
+          working-dir: ./test
+
+      - name: clean up
+        run: git clean -xdf
+
+      - name: Install dependencies with multirepo
+        uses: ./
+        with:
+          pdm-lock-flags: '-d'
+
+      - name: clean up
+        run: git clean -xdf
+
+      - name: Install dependencies with multirepo
+        uses: ./
+        with:
+          install-dev: ${{matrix.dev}}
+          install-groups: ${{matrix.groups}}
+

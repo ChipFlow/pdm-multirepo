@@ -1,0 +1,23 @@
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+name: CI
+env:
+  GH_TOKEN: ${{ github.token }}
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        action: ["push", "pull_request"]
+    steps:
+      - name: Check out source code
+        uses: actions/checkout@v4
+      - name: Install ACT plugin for gh
+        run: gh extension install nektos/gh-act
+      - name: Test ${{matrix.action}}
+        run: gh act ${{matrix.action}} -P ubuntu-latest=catthehacker/ubuntu:act-latest -W test.yml
+
