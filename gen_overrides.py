@@ -15,6 +15,8 @@ from pathlib import Path
 
 from pyproject_parser import PyProject
 
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
 
 rootdir = Path(os.environ["PDM_PROJECT_ROOT"])
 
@@ -28,16 +30,17 @@ def get_remote_branch(repo, branch):
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0
 
 def gen_overrides():
-    if len(sys.argv) > 1:
+    if len(sys.argv) > 2:
         branch = sys.argv[1]
         if branch.startswith("refs/heads/"):
             branch = branch[11:]
-        base = sys.argv[2]
-        if base.startswith("refs/heads/"):
-            base = base[11:]
+        base_branch = sys.argv[2]
+        if base_branch.startswith("refs/heads/"):
+            base_branch = base_branch[11:]
 
     else:
         branch = get_branch(rootdir)
+        base_branch = get_branch(rootdir)
     prj = PyProject.load(rootdir / "pyproject.toml")
     reqs = prj.project['dependencies']
     git_reqs = [r for r in reqs if r.url and r.url.startswith('git+')]
@@ -46,11 +49,15 @@ def gen_overrides():
         # remove any branches that might already be there
         base = parts.path.rsplit(sep="@",maxsplit=1)[0]
         clone_url = urllib.parse.urlunparse(parts._replace(path=base, scheme="https"))
+        eprint(f"# Checking {branch} and {base_branch} on {clone_url}")
         if get_remote_branch(clone_url, branch):
+            eprint(f"#    {branch} found!")
             path = f"{parts.path}@{branch}"
-        elif get_remote_branch(clone_url, base):
-            path = f"{parts.path}@{base}"
+        elif get_remote_branch(clone_url, base_branch):
+            eprint(f"#    {base_branch} found!")
+            path = f"{parts.path}@{base_branch}"
         else:
+            eprint("#    not found, falling back to main")
             path = parts.path
         r.url = urllib.parse.urlunparse(parts._replace(path=path))
         print(str(r))
