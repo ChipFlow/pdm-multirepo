@@ -30,7 +30,7 @@ runs:
       if: github.event_name == 'pull_request'
       shell: bash
       run: |
-        pdm run ${{github.action_path}}/gen_overrides.py ${{github.head_ref}} > overrides.txt
+        pdm run ${{github.action_path}}/gen_overrides.py ${{github.head_ref}} ${{github.base_ref}} > overrides.txt
         if [ -s overrides.txt ]; then
           echo "Generated overrides:"
           cat overrides.txt
