@@ -32,6 +32,10 @@ def gen_overrides():
         branch = sys.argv[1]
         if branch.startswith("refs/heads/"):
             branch = branch[11:]
+        base = sys.argv[2]
+        if base.startswith("refs/heads/"):
+            base = base[11:]
+
     else:
         branch = get_branch(rootdir)
     prj = PyProject.load(rootdir / "pyproject.toml")
@@ -44,6 +48,8 @@ def gen_overrides():
         clone_url = urllib.parse.urlunparse(parts._replace(path=base, scheme="https"))
         if get_remote_branch(clone_url, branch):
             path = f"{parts.path}@{branch}"
+        elif get_remote_branch(clone_url, base):
+            path = f"{parts.path}@{base}"
         else:
             path = parts.path
         r.url = urllib.parse.urlunparse(parts._replace(path=path))
