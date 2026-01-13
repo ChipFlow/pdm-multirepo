@@ -24,10 +24,18 @@ def get_branch(repo_dir):
     """Get the current git branch"""
     return subprocess.check_output(['git', 'branch', '--show-current'], text=True).strip()
 
-def get_remote_branch(repo, branch):
-    return subprocess.call(
-        ['git', 'ls-remote', '--exit-code', '--heads', repo, f'refs/heads/{branch}'],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0
+def get_remote_branch_commit(repo, branch):
+    """Get the commit hash for a remote branch, or None if it doesn't exist"""
+    try:
+        output = subprocess.check_output(
+            ['git', 'ls-remote', repo, f'refs/heads/{branch}'],
+            text=True, stderr=subprocess.DEVNULL)
+        if output:
+            # Output format: "<commit_hash>\trefs/heads/<branch>"
+            return output.split()[0]
+    except subprocess.CalledProcessError:
+        pass
+    return None
 
 def gen_overrides():
     if len(sys.argv) > 2:
@@ -50,15 +58,18 @@ def gen_overrides():
         base = parts.path.rsplit(sep="@",maxsplit=1)[0]
         clone_url = urllib.parse.urlunparse(parts._replace(path=base, scheme="https"))
         eprint(f"# Checking {branch} and {base_branch} on {clone_url}")
-        if get_remote_branch(clone_url, branch):
-            eprint(f"#    {branch} found!")
-            path = f"{parts.path}@{branch}"
-        elif get_remote_branch(clone_url, base_branch):
-            eprint(f"#    {base_branch} found!")
-            path = f"{parts.path}@{base_branch}"
+        commit = get_remote_branch_commit(clone_url, branch)
+        if commit:
+            eprint(f"#    {branch} found! Using commit {commit[:8]}")
+            path = f"{base}@{commit}"
         else:
-            eprint("#    not found, falling back to main")
-            path = parts.path
+            commit = get_remote_branch_commit(clone_url, base_branch)
+            if commit:
+                eprint(f"#    {base_branch} found! Using commit {commit[:8]}")
+                path = f"{base}@{commit}"
+            else:
+                eprint("#    not found, falling back to main")
+                path = parts.path
         r.url = urllib.parse.urlunparse(parts._replace(path=path))
         print(str(r))
 
